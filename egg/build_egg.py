@@ -107,7 +107,7 @@ egg = {
     "author": "danevi01@users.noreply.github.com",   # das Panel verlangt eine gültige E-Mail-Adresse
     "description": "Rust Dedicated Server mit Vanilla, Oxide oder Carbon. Eigenes Image und Start-Script; Framework-Installation, Updates und Konsole (RCON) übernimmt das Image.",
     "features": ["steam_disk_space"],
-    "docker_images": {"Rust (latest)": IMAGE},
+    "docker_images": {"Rust latest": IMAGE},   # Label: keine Klammern, das Panel-Formular lehnt sie ab
     "file_denylist": [],
     "startup": "/entrypoint.sh",
     "config": {
