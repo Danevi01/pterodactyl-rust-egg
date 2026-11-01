@@ -57,7 +57,8 @@ child.on('error', (err) => {
 let ws = null;
 let connected = false;
 let exiting = false;
-let nextId = 1000;
+const FIRST_COMMAND_ID = 1000;
+let nextId = FIRST_COMMAND_ID;
 
 function connect() {
     if (exiting) return;
@@ -67,8 +68,12 @@ function connect() {
     ws.on('message', (data) => {
         try {
             const msg = JSON.parse(data.toString());
-            // Identifier -1 = Broadcast des Server-Logs (steht schon über stdout in der Konsole)
-            if (msg && msg.Identifier !== -1 && msg.Message) console.log(msg.Message);
+            // Der Server-Log kommt bereits über stdout (-logfile) in die Konsole. RCON schickt ihn
+            // zusätzlich als Broadcast (Identifier 0 oder -1) – das würde alles doppelt anzeigen.
+            // Ausgegeben werden nur Antworten auf Befehle, die dieser Wrapper selbst gesendet hat (ID >= 1000).
+            if (msg && Number.isInteger(msg.Identifier) && msg.Identifier >= FIRST_COMMAND_ID && msg.Message) {
+                console.log(msg.Message);
+            }
         } catch (_) { /* ignorieren */ }
     });
     ws.on('close', () => {
