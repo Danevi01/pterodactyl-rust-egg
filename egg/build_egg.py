@@ -104,7 +104,7 @@ egg = {
     "meta": {"version": "PTDL_v2", "update_url": None},
     "exported_at": datetime.datetime.now(datetime.timezone.utc).astimezone().isoformat(timespec="seconds"),
     "name": "Rust - Custom (Vanilla/Oxide/Carbon)",
-    "author": "Danevi01",
+    "author": "danevi01@users.noreply.github.com",   # das Panel verlangt eine gültige E-Mail-Adresse
     "description": "Rust Dedicated Server mit Vanilla, Oxide oder Carbon. Eigenes Image und Start-Script; Framework-Installation, Updates und Konsole (RCON) übernimmt das Image.",
     "features": ["steam_disk_space"],
     "docker_images": {"Rust (latest)": IMAGE},
