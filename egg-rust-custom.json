@@ -1,0 +1,334 @@
+{
+    "_comment": "Erzeugt mit egg/build_egg.py – nicht von Hand bearbeiten.",
+    "meta": {
+        "version": "PTDL_v2",
+        "update_url": null
+    },
+    "exported_at": "2026-11-01T22:54:55+01:00",
+    "name": "Rust - Custom (Vanilla/Oxide/Carbon)",
+    "author": "Danevi01",
+    "description": "Rust Dedicated Server mit Vanilla, Oxide oder Carbon. Eigenes Image und Start-Script; Framework-Installation, Updates und Konsole (RCON) übernimmt das Image.",
+    "features": [
+        "steam_disk_space"
+    ],
+    "docker_images": {
+        "Rust (latest)": "ghcr.io/danevi01/pterodactyl-rust-egg:latest"
+    },
+    "file_denylist": [],
+    "startup": "/entrypoint.sh",
+    "config": {
+        "files": "{}",
+        "startup": "{\n    \"done\": \"Server startup complete\"\n}",
+        "logs": "{}",
+        "stop": "quit"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Installations-Script (läuft einmalig im Pterodactyl-Installer-Container, Serverdateien: /mnt/server)\n# Lädt SteamCMD und die Rust-Serverdateien. Framework-Installation und Updates übernimmt /entrypoint.sh im Image.\nset -euo pipefail\n\nSRCDS_APPID=258550\n\nVERSION_LC=\"$(echo \"${VERSION:-public}\" | tr '[:upper:]' '[:lower:]')\"\ncase \"$VERSION_LC\" in\n    aux01|aux01-staging) BRANCH=\"aux01\" ;;\n    aux02)               BRANCH=\"aux02\" ;;\n    staging)             BRANCH=\"staging\" ;;\n    release)             BRANCH=\"release\" ;;\n    *)                   BRANCH=\"public\" ;;\nesac\necho \"Steam-Branch: ${BRANCH}\"\n\nBETA=()\nif [ \"$BRANCH\" != \"public\" ]; then\n    BETA=(-beta \"$BRANCH\")\nfi\n\ncd /tmp\nmkdir -p /mnt/server/steamcmd /mnt/server/steamapps\ncurl -sSL -o steamcmd.tar.gz https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz\ntar -xzf steamcmd.tar.gz -C /mnt/server/steamcmd\ncd /mnt/server/steamcmd\n\n# SteamCMD scheitert sonst teilweise an Besitzer/HOME, auch als root\nchown -R root:root /mnt\nexport HOME=/mnt/server\n\n./steamcmd.sh +force_install_dir /mnt/server +login anonymous +app_update \"${SRCDS_APPID}\" ${BETA[@]+\"${BETA[@]}\"} validate +quit\n\nmkdir -p /mnt/server/.steam/sdk32 /mnt/server/.steam/sdk64\ncp -v linux32/steamclient.so /mnt/server/.steam/sdk32/steamclient.so\ncp -v linux64/steamclient.so /mnt/server/.steam/sdk64/steamclient.so\n\necho \"Installation abgeschlossen.\"\n",
+            "container": "ghcr.io/pterodactyl/installers:debian",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Server Name",
+            "description": "Name des Servers in der Serverliste.",
+            "env_variable": "SERVER_HOSTNAME",
+            "default_value": "A Rust Server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:60",
+            "field_type": "text"
+        },
+        {
+            "name": "Description",
+            "description": "Beschreibung unter dem Servernamen. \\n erzeugt einen Zeilenumbruch.",
+            "env_variable": "DESCRIPTION",
+            "default_value": "Rust Server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "URL",
+            "description": "Webseite des Servers (Button \"Visit Website\").",
+            "env_variable": "SERVER_URL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|url",
+            "field_type": "text"
+        },
+        {
+            "name": "Server Image",
+            "description": "Header-Bild der Serverliste (direkte Bild-URL).",
+            "env_variable": "SERVER_IMG",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|url",
+            "field_type": "text"
+        },
+        {
+            "name": "Server Logo",
+            "description": "Rundes Logo für die Rust+-App (direkte Bild-URL).",
+            "env_variable": "SERVER_LOGO",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|url",
+            "field_type": "text"
+        },
+        {
+            "name": "Server Tags",
+            "description": "Tags, mit Komma getrennt, z. B. weekly,EU,modded. Liste: https://wiki.facepunch.com/rust/server-browser-tags",
+            "env_variable": "SERVER_TAGS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Max Players",
+            "description": "Maximale Spielerzahl.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "40",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|min:1",
+            "field_type": "text"
+        },
+        {
+            "name": "Gamemode",
+            "description": "none, vanilla, survival, softcore oder hardcore.",
+            "env_variable": "GAMEMODE",
+            "default_value": "vanilla",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Modding Framework",
+            "description": "Vanilla, Oxide, Carbon oder Carbon-Minimal. Der passende Root-Ordner (oxide bzw. carbon) wird automatisch gesetzt.",
+            "env_variable": "FRAMEWORK",
+            "default_value": "Carbon",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:Vanilla,Oxide,Carbon,Carbon-Minimal",
+            "field_type": "text"
+        },
+        {
+            "name": "Framework Update",
+            "description": "1 = Framework bei jedem Start neu laden/aktualisieren, 0 = nur wenn nötig.",
+            "env_variable": "FRAMEWORK_UPDATE",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Framework URL (optional)",
+            "description": "Eigene Download-URL für das Framework-Archiv (Oxide: .zip, Carbon: .tar.gz). Leer = automatisch.",
+            "env_variable": "FRAMEWORK_URL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|url",
+            "field_type": "text"
+        },
+        {
+            "name": "Modding Root Directory (optional)",
+            "description": "Normalerweise leer lassen. Nur setzen, wenn der Ordner zum Framework passt (Oxide ohne \"carbon\" im Namen, Carbon ohne \"oxide\").",
+            "env_variable": "MODDING_ROOT",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:32",
+            "field_type": "text"
+        },
+        {
+            "name": "Version",
+            "description": "Steam-Branch: public, release, staging, aux01 oder aux02.",
+            "env_variable": "VERSION",
+            "default_value": "public",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:public,release,staging,aux01,aux02",
+            "field_type": "text"
+        },
+        {
+            "name": "Auto Update",
+            "description": "1 = Spieldateien bei jedem Start per SteamCMD aktualisieren.",
+            "env_variable": "AUTO_UPDATE",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Validate Game Files",
+            "description": "1 = Spieldateien beim Update zusätzlich validieren (dauert länger).",
+            "env_variable": "VALIDATE",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Discord Extension",
+            "description": "Oxide: Discord-Extension laden (ungetestet, nur Oxide).",
+            "env_variable": "DISCORD_EXT",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "RustEdit Extension",
+            "description": "Oxide: RustEdit-Extension laden (ungetestet, nur Oxide).",
+            "env_variable": "RUSTEDIT_EXT",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "World Size",
+            "description": "Größe der prozeduralen Karte.",
+            "env_variable": "WORLD_SIZE",
+            "default_value": "3000",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1000,6000",
+            "field_type": "text"
+        },
+        {
+            "name": "World Seed",
+            "description": "Seed der prozeduralen Karte. Leer = zufällig.",
+            "env_variable": "WORLD_SEED",
+            "default_value": "1234",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Custom Map URL",
+            "description": "Direkte Download-URL einer eigenen Karte. Überschreibt Größe/Seed. Eine ungültige URL lässt den Server abstürzen.",
+            "env_variable": "MAP_URL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|url",
+            "field_type": "text"
+        },
+        {
+            "name": "Server Identity",
+            "description": "Ordnername der Serverdaten (Standard: rust).",
+            "env_variable": "SERVER_IDENTITY",
+            "default_value": "rust",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|regex:/^[\\w.-]+$/",
+            "field_type": "text"
+        },
+        {
+            "name": "Save Interval",
+            "description": "Automatisches Speichern alle X Sekunden.",
+            "env_variable": "SAVEINTERVAL",
+            "default_value": "60",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|min:10",
+            "field_type": "text"
+        },
+        {
+            "name": "Query Port",
+            "description": "Steam-Query-Port. Darf nicht dem Spielport entsprechen.",
+            "env_variable": "QUERY_PORT",
+            "default_value": "27017",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer",
+            "field_type": "text"
+        },
+        {
+            "name": "RCON Port",
+            "description": "Port für RCON (wird auch von der Panel-Konsole genutzt).",
+            "env_variable": "RCON_PORT",
+            "default_value": "28016",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer",
+            "field_type": "text"
+        },
+        {
+            "name": "RCON Password",
+            "description": "RCON-Passwort, mindestens 8 Zeichen (Buchstaben, Zahlen, . _ -). \"CHANGEME\" wird abgelehnt.",
+            "env_variable": "RCON_PASS",
+            "default_value": "CHANGEME",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|regex:/^[\\w.-]+$/|min:8|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "App Port",
+            "description": "Port der Rust+-App. -1 = deaktiviert.",
+            "env_variable": "APP_PORT",
+            "default_value": "28082",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer",
+            "field_type": "text"
+        },
+        {
+            "name": "App Public IP",
+            "description": "Öffentliche IP für Rust+. Leer = wird beim Start automatisch ermittelt (api.ipify.org).",
+            "env_variable": "APP_PUBLIC_IP",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:45",
+            "field_type": "text"
+        },
+        {
+            "name": "Log File Location",
+            "description": "Zusätzliche Logdatei, strftime-Muster erlaubt (z. B. logs/%Y-%m-%d-%H%M.log). Leer = nur Konsole.",
+            "env_variable": "LOG_FILE",
+            "default_value": "logs/%Y-%m-%d-%H%M.log",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Additional Arguments",
+            "description": "Zusätzliche Startparameter, durch Leerzeichen getrennt (keine Anführungszeichen-Auswertung).",
+            "env_variable": "ADDITIONAL_ARGS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Debug Mode",
+            "description": "1 = Egg gibt das aufgelöste Startkommando aus (Passwort maskiert).",
+            "env_variable": "EGG_DEBUG",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        }
+    ]
+}
