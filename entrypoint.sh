@@ -301,7 +301,9 @@ export RCON_PORT="${RCON_PORT:-28016}" RCON_PASS
 
 # Logdatei (strftime-Muster erlaubt, z. B. logs/%Y-%m-%d-%H%M.log)
 if [ -n "${LOG_FILE:-}" ]; then
-    EGG_LOG_FILE="$(date +"$LOG_FILE")"
+    # Alte Egg-Werte der Form logs/$(date +%Y-%m-%d-%H%M).log auf das reine Muster zurückführen
+    LOG_PATTERN="$(printf '%s' "$LOG_FILE" | sed -E 's/\$\(date \+([^)]*)\)/\1/g')"
+    EGG_LOG_FILE="$(date +"$LOG_PATTERN")"
     export EGG_LOG_FILE
     log "Server-Log wird zusätzlich nach ${EGG_LOG_FILE} geschrieben."
 fi
